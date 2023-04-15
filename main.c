@@ -30,6 +30,7 @@ void draw_graph();
 double **randm(int size1, int size2);
 int **mulmr(double coefficient, double **double_mat, int **target_mat, int size1, int size2, int oriented);
 int **mat_create(int size1, int size2);
+void free_mat (size_t **target_mat, int size2);
 void print_mat(int **target_mat, int size1, int size2);
 
 int main() {
@@ -40,13 +41,6 @@ int main() {
     double c = 1.0 - n3 * 0.02 - n4 * 0.005 - 0.25;
     double **service_mat;
     service_mat = randm(n, n);
-    for (int i = 0; i <= n; i++) {
-        for (int j = 0; j <= n; j++) {
-            printf("%5.4f ", service_mat[i][j] * c);
-        }
-        printf("\n");
-    }
-
     int **rel_mat;
     rel_mat = mat_create(n, n);
 
@@ -194,6 +188,13 @@ int **mulmr(double coefficient, double **double_mat, int **target_mat, int size1
         }
     }
     return target_mat;
+}
+
+void free_mat (size_t **target_mat, int size2) {
+    for (int i = 0; i <= size2; i++) {
+        free(target_mat[i]);
+    }
+    free(target_mat);
 }
 
 void print_mat(int **target_mat, int size1, int size2) {
