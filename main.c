@@ -63,8 +63,14 @@ double vec_dist (vec_2* vec) {
 }
 double vectors_cos (vec_2* vec1, vec_2* vec2) {
     double cos = (vec1->x * vec2 ->x + vec1->y * vec2->y) /
-            vec_dist(vec1) * vec_dist(vec2);
-    return cos;
+            (vec_dist(vec1) * vec_dist(vec2));
+    return (cos > 0.01 || cos < -0.01) ? cos : 0;
+}
+int vec_quarter (vec_2* vec) {
+    if (vec->x > 0 && vec->y > 0) return 4;
+    else if (vec->x > 0 && vec->y < 0) return 1;
+    else if (vec->x < 0 && vec->y > 0) return 3;
+    else if (vec->x < 0 && vec->y < 0) return 2;
 }
 void draw_graph_vertices (point_t *graph, int size);
 
@@ -75,44 +81,78 @@ void draw_arc (vec_4 *vector, int radius) {
     *vec_OX = (vec_2) {1,  0};
     vec->x = vector->end_x - vector->start_x;
     vec->y = vector->end_y - vector->start_y;
+    int quarter;
+
+    if (vec->x > 0 && vec->y > 0) quarter = 1;
+    else if (vec->x > 0 && vec->y < 0) quarter = 2;
+    else if (vec->x < 0 && vec->y > 0) quarter = 4;
+    else if (vec->x < 0 && vec->y < 0) quarter = 3;
+
     int midpoint_x = vec->x / 2;
     int midpoint_y = vec->y / 2;
     double cosB = vectors_cos(vec, vec_OX);
     double sinA = cosB;
-    double cosA = cosB > 0 ? sqrt(1-cosB * cosB) : -sqrt(1-cosB * cosB);
+    double cosA;
+    if (quarter == 2 || quarter == 3) cosA = -sqrt(1-cosB * cosB);
+    else cosA = sqrt(1-cosB * cosB);
+
     int offset_y = sinA * radius;
     int offset_x = cosA * radius;
     int center_x = vector->start_x + midpoint_x - offset_x;
     int center_y = vector->start_y + midpoint_y + offset_y;
     int rad2 = sqrt((center_x - vector->start_x) * (center_x - vector->start_x) +
             (center_y - vector->start_y) * (center_y - vector->start_y));
-    vec->x = -(center_x - vector->end_x);
-    vec->y = -(center_y - vector->end_y);
-    cosB = vectors_cos(vec, vec_OX);
-    vec->x = -(center_x - vector->start_x);
-    vec->y = -(center_y - vector->start_y);
-    cosA = vectors_cos(vec, vec_OX);
 
-    int B = 64 * acos(cosB) * 180 / 3.1415;
-    if (cosB > 0) B = -B;
-    int A = 64 * acos(cosA) * 180 / 3.1415;
-    if (cosA > 0) A = -A;
-    printf("\n %i %i \n", A/64, B/64);
-    XDrawLine(dis, win, gc, center_x, center_y, vector->start_x + midpoint_x, vector->start_y + midpoint_y);
+    vec_2 * center_to_end = malloc(sizeof (vec_2));
+    center_to_end->x = vector->end_x - center_x;
+    center_to_end->y = vector->end_y - center_y;
+
+    vec_2 * center_to_start = malloc(sizeof (vec_2));
+    center_to_start->x = vector->start_x - center_x;
+    center_to_start->y = vector->start_y - center_y;
+
+    cosA = vectors_cos(center_to_start, vec_OX);
+    int S = 64 * acos(cosA) * 180 / 3.1415;
+    if (vec_quarter(center_to_start) == 4 || vec_quarter(center_to_start) == 3)
+        S = 360 * 64 - S;
+    cosB = vectors_cos(center_to_end, vec_OX);
+    int E = 64 * acos(cosB) * 180 / 3.1415;
+
+    if (vec_quarter(center_to_end) == 4 || vec_quarter(center_to_end) == 3)
+        E = 360 * 64 - E;
+
+    if (vec_quarter(center_to_end) == 4)
+        S = 360 * 64 + S;
+
+    printf("\n %i %i \n", S / 64, E / 64);
     XDrawArc(dis, win, gc, center_x - rad2, center_y - rad2,
-             2*rad2, 2*rad2, B, abs(B - A));
+             2*rad2, 2*rad2, E, abs(S - E));
+    free(vec); free(vec_OX); free(center_to_end); free(center_to_start);
 }
+
 void draw_graph_o (point_t *graph, int **relation_matrix, int size) {
     int point_1 = 0;
     int point_2 = size / 3;
     int point_3 = 2 * size / 3;
-    XSetForeground(dis, gc, wpen);
-    for (int i = point_1; i < point_2; i++) {
-        for (int j = 0; j < size; j++) {
-            int x_offset = 2 * (graph[j].x - graph[i].x);
-            int y_offset = 2 * (graph[j].y - graph[i].y);
+    vec_2 *vec1 = malloc(sizeof (vec_2));
+    vec_2 *vec2 = malloc(sizeof (vec_2));
+    vec_2 *vec3 = malloc(sizeof (vec_2));
+    vec_2 *vec_now = malloc(sizeof (vec_2));
 
-            if (j < point_2) {
+
+    *vec1 = (vec_2 ) {graph[point_1].x - graph[point_2].x, graph[point_1].y - graph[point_2].y};
+    *vec2 = (vec_2 ) {graph[point_2].x - graph[point_3].x, graph[point_2].y - graph[point_3].y};
+    *vec3 = (vec_2 ) {graph[point_3].x - graph[size - 1].x, graph[point_3].y - graph[size - 1].y};
+
+    XSetForeground(dis, gc, wpen);
+    for (int i = 0; i < size; i++) {
+        for (int j = i; j < size; j++) {
+            *vec_now = (vec_2 ) {graph[i].x - graph[j].x, graph[i].y - graph[j].y};
+            int condition = (
+                    point_1 <= i && i <= point_2 && point_1 <= j && j <= point_2 ||
+                    point_2 <= i && i <= point_3 && point_2 <= j && j <= point_3 ||
+                    point_3 <= i && i < size && point_3 <= j && j < size);
+            if (condition) {
                 switch (abs(i - j)) {
                     case 0:
                         if (relation_matrix[i][i]) {
@@ -131,7 +171,8 @@ void draw_graph_o (point_t *graph, int **relation_matrix, int size) {
                             *this_vec = (vec_4) {graph[i].x, graph[i].y,
                                                  graph[j].x, graph[j].y};
 
-                            draw_arc (this_vec, 200);
+                            draw_arc (this_vec, 100);
+                            free (this_vec);
                         }
                 }
             }
@@ -142,6 +183,7 @@ void draw_graph_o (point_t *graph, int **relation_matrix, int size) {
             }
         }
     }
+    free(vec1); free(vec2); free(vec3); free(vec_now);
 }
 
 // matrix functions
@@ -158,7 +200,7 @@ int main() {
     int n1 = 2, n2 = 1, n3 = 2, n4 = 5;
     srand(n1 * 1000 + n2 * 100 + n3 * 10 + n4);
 
-    int n = 10 + n3;
+    int n = 15 + n3;
     double c = 1.0 - n3 * 0.02 - n4 * 0.005 - 0.25;
     double **service_mat;
     service_mat = randm(n, n);
@@ -189,6 +231,9 @@ int main() {
                             return 0;
                             break;
                         case 'o':
+
+                            break;
+                        case 'u':
                             redraw();
                             rel_mat = mulmr(c, service_mat, rel_mat, n, n, 1);
                             printf("drawing oriented matrix: \n");
@@ -196,10 +241,6 @@ int main() {
                             graph = tri_graph_create(graph, n);
                             draw_graph_o(graph, rel_mat, n);
                             draw_graph_vertices(graph, n);
-
-                            break;
-                        case 'u':
-
                             break;
 
                     }
