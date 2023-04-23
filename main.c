@@ -130,7 +130,7 @@ void draw_arc (vec_4 *vector, int radius) {
     free(vec); free(vec_OX); free(center_to_end); free(center_to_start);
 }
 
-void draw_graph_o (point_t *graph, int **relation_matrix, int size) {
+void draw_graph_u (point_t *graph, int **relation_matrix, int size) {
     int point_1 = 0;
     int point_2 = size / 3;
     int point_3 = 2 * size / 3;
@@ -200,7 +200,7 @@ int main() {
     int n1 = 2, n2 = 1, n3 = 2, n4 = 5;
     srand(n1 * 1000 + n2 * 100 + n3 * 10 + n4);
 
-    int n = 15 + n3;
+    int n = 10 + n3;
     double c = 1.0 - n3 * 0.02 - n4 * 0.005 - 0.25;
     double **service_mat;
     service_mat = randm(n, n);
@@ -231,7 +231,12 @@ int main() {
                             return 0;
                             break;
                         case 'o':
-
+                            rel_mat = mulmr(c, service_mat, rel_mat, n, n, 1);
+                            printf("drawing oriented matrix: \n");
+                            print_mat(rel_mat, n, n);
+                            graph = tri_graph_create(graph, n);
+                            draw_graph_u(graph, rel_mat, n);
+                            draw_graph_vertices(graph, n);
                             break;
                         case 'u':
                             redraw();
@@ -239,7 +244,7 @@ int main() {
                             printf("drawing oriented matrix: \n");
                             print_mat(rel_mat, n, n);
                             graph = tri_graph_create(graph, n);
-                            draw_graph_o(graph, rel_mat, n);
+                            draw_graph_u(graph, rel_mat, n);
                             draw_graph_vertices(graph, n);
                             break;
 
