@@ -36,12 +36,15 @@ typedef struct vector {
     int end_y;
 } vec_4;
 
-
 typedef struct serv_vector { //it`s relative to start_x, start_y
     int x;
     int y;
 } vec_2;
 
+typedef struct radius_offset {
+    int x_offset;
+    int y_offset;
+} r_offset;
 // X routines
 void init_x();
 void close_x();
@@ -50,6 +53,7 @@ void redraw ();
 
 int SCREEN_WIDTH = 1000;
 int SCREEN_HEIGHT = 800;
+int POINT_RADIUS = 15;
 unsigned long bpen = 0x3200FF;
 unsigned long wpen = 0xFFFFFF;
 
@@ -68,36 +72,70 @@ double vectors_cos (vec_2* vec1, vec_2* vec2) {
 }
 int vec_quarter (vec_2* vec) {
     if (vec->x > 0 && vec->y > 0) return 4;
-    else if (vec->x > 0 && vec->y < 0) return 1;
-    else if (vec->x < 0 && vec->y > 0) return 3;
-    else if (vec->x < 0 && vec->y < 0) return 2;
+    if (vec->x > 0 && vec->y <= 0) return 1;
+    if (vec->x <= 0 && vec->y > 0) return 3;
+    if (vec->x <= 0 && vec->y <= 0) return 2;
+}
+r_offset *rad_offsetting(vec_4* vector) {
+    vec_2 *vec = malloc(sizeof (vec_2));
+    vec_2 *vec_OX = malloc(sizeof (vec_2));
+
+    *vec_OX = (vec_2) {1,  0};
+    vec->x = vector->end_x - vector->start_x;
+    vec->y = vector->end_y - vector->start_y;
+
+    int quarter = vec_quarter(vec);
+
+    int x = abs(POINT_RADIUS * vectors_cos(vec, vec_OX));
+    int y = abs(POINT_RADIUS * sqrt(1 - vectors_cos(vec, vec_OX) * vectors_cos(vec, vec_OX)));
+
+    switch (quarter) {
+        case 1:
+            x = x;
+            y = -y;
+            break;
+        case 2:
+            x = -x;
+            y = -y;
+            break;
+        case 3:
+            x = -x;
+            y = y;
+            break;
+        case 4:
+            x = x;
+            y = y;
+            break;
+    }
+    free(vec_OX); free(vec);
+    r_offset *offset = malloc(sizeof(r_offset));
+    offset->x_offset = x;
+    offset->y_offset = y;
+    return offset;
 }
 void draw_graph_vertices (point_t *graph, int size);
 
 //за цю функію взагалі треба 13 балів ставити)
-void draw_arc (vec_4 *vector, int radius) {
+void draw_arc (vec_4 *vector, int offset_radius, int with_arrow) {
     vec_2 *vec = malloc(sizeof (vec_2));
     vec_2 *vec_OX = malloc(sizeof (vec_2));
     *vec_OX = (vec_2) {1,  0};
+
     vec->x = vector->end_x - vector->start_x;
     vec->y = vector->end_y - vector->start_y;
-    int quarter;
 
-    if (vec->x > 0 && vec->y > 0) quarter = 1;
-    else if (vec->x > 0 && vec->y < 0) quarter = 2;
-    else if (vec->x < 0 && vec->y > 0) quarter = 4;
-    else if (vec->x < 0 && vec->y < 0) quarter = 3;
+    int quarter = vec_quarter(vec);
 
     int midpoint_x = vec->x / 2;
     int midpoint_y = vec->y / 2;
     double cosB = vectors_cos(vec, vec_OX);
     double sinA = cosB;
     double cosA;
-    if (quarter == 2 || quarter == 3) cosA = -sqrt(1-cosB * cosB);
+    if (quarter == 1 || quarter == 2) cosA = -sqrt(1-cosB * cosB);
     else cosA = sqrt(1-cosB * cosB);
 
-    int offset_y = sinA * radius;
-    int offset_x = cosA * radius;
+    int offset_y = sinA * offset_radius;
+    int offset_x = cosA * offset_radius;
     int center_x = vector->start_x + midpoint_x - offset_x;
     int center_y = vector->start_y + midpoint_y + offset_y;
     int rad2 = sqrt((center_x - vector->start_x) * (center_x - vector->start_x) +
@@ -121,71 +159,169 @@ void draw_arc (vec_4 *vector, int radius) {
     if (vec_quarter(center_to_end) == 4 || vec_quarter(center_to_end) == 3)
         E = 360 * 64 - E;
 
-    if (vec_quarter(center_to_end) == 4)
+    if (vec_quarter(center_to_end) == 4 && vec_quarter(center_to_start) == 1)
         S = 360 * 64 + S;
 
-    printf("\n %i %i \n", S / 64, E / 64);
+    XSetLineAttributes(dis, gc,
+                       1,
+                       LineSolid,
+                       CapButt, JoinMiter);
+
     XDrawArc(dis, win, gc, center_x - rad2, center_y - rad2,
              2*rad2, 2*rad2, E, abs(S - E));
+    if(with_arrow) {
+        int theta = -90 + round(acos(vectors_cos(center_to_end, vec_OX)) * 180 / 3.1415);
+        printf("\n%i\n", theta);
+        if (vec_quarter(center_to_end) == 3 || vec_quarter(center_to_end) == 4)
+            theta = 180 - theta;
+        arrow(theta, vector->end_x, vector->end_y);
+    }
     free(vec); free(vec_OX); free(center_to_end); free(center_to_start);
 }
+void draw_line (vec_4 *vector, int with_arrow) {
+    XSetLineAttributes(dis, gc,
+                       1,
+                       LineSolid,
+                       CapButt, JoinMiter);
+    XDrawLine(dis, win, gc, vector->start_x, vector->start_y, vector->end_x, vector->end_y);
 
+    if (with_arrow) {
+        vec_2 *vec = malloc(sizeof (vec_2));
+        vec_2 *vec_OX = malloc(sizeof (vec_2));
+        *vec_OX = (vec_2) {1, 0};
+        vec->x = vector->end_x - vector->start_x;
+        vec->y = vector->end_y - vector->start_y;
+        double cos = vectors_cos(vec, vec_OX);
+        int theta = acos(cos) * 180 / 3.1415;
+        if (vec_quarter(vec) == 3 || vec_quarter(vec) == 4)
+            theta = 360 - theta;
+        arrow(theta, vector->end_x, vector->end_y);
+        free (vec); free (vec_OX);
+    }
+}
 void draw_graph_u (point_t *graph, int **relation_matrix, int size) {
     int point_1 = 0;
     int point_2 = size / 3;
     int point_3 = 2 * size / 3;
-    vec_2 *vec1 = malloc(sizeof (vec_2));
-    vec_2 *vec2 = malloc(sizeof (vec_2));
-    vec_2 *vec3 = malloc(sizeof (vec_2));
-    vec_2 *vec_now = malloc(sizeof (vec_2));
-
-
-    *vec1 = (vec_2 ) {graph[point_1].x - graph[point_2].x, graph[point_1].y - graph[point_2].y};
-    *vec2 = (vec_2 ) {graph[point_2].x - graph[point_3].x, graph[point_2].y - graph[point_3].y};
-    *vec3 = (vec_2 ) {graph[point_3].x - graph[size - 1].x, graph[point_3].y - graph[size - 1].y};
-
-    XSetForeground(dis, gc, wpen);
     for (int i = 0; i < size; i++) {
         for (int j = i; j < size; j++) {
-            *vec_now = (vec_2 ) {graph[i].x - graph[j].x, graph[i].y - graph[j].y};
+            XSetForeground(dis, gc, 0xFFFFFF);
+            XSetLineAttributes(dis, gc, 1, LineSolid, CapButt, JoinMiter);
+
+            vec_4 *this_vec = malloc(sizeof (vec_4));
+            *this_vec = (vec_4) {graph[i].x, graph[i].y,
+                                 graph[j].x, graph[j].y};
+
+            r_offset *offset = rad_offsetting(this_vec);
+
+            this_vec->start_x += offset->x_offset;
+            this_vec->start_y += offset->y_offset;
+            this_vec->end_x -= offset->x_offset;
+            this_vec->end_y -= offset->y_offset;
+
             int condition = (
                     point_1 <= i && i <= point_2 && point_1 <= j && j <= point_2 ||
                     point_2 <= i && i <= point_3 && point_2 <= j && j <= point_3 ||
-                    point_3 <= i && i < size && point_3 <= j && j < size);
+                    point_3 <= i && i < size && point_3 <= j && j < size ||
+                    point_3 <= i && i < size &&  j == point_1 ||
+                    point_3 <= j && j < size &&  i == point_1);
             if (condition) {
-                switch (abs(i - j)) {
+                switch ((abs(i - j) % (size - 1))) {
                     case 0:
                         if (relation_matrix[i][i]) {
-                            XDrawArc(dis, win, gc, graph[j].x + 5, graph[j].y - 20,
-                                     2 * 15, 2 * 15, 0, 360 * 64);
+
+                            XDrawArc(dis, win, gc, this_vec->start_x + 0.3*POINT_RADIUS, this_vec->start_y,
+                                     2 * POINT_RADIUS, 2 * POINT_RADIUS, 240*64, 240*64);
                         }
                         break;
                     case 1:
                         if (relation_matrix[i][j]) {
-                            XDrawLine(dis, win, gc, graph[i].x, graph[i].y, graph[j].x, graph[j].y);
+                            draw_line(this_vec, 0);
                         }
                         break;
                     default:
                         if (relation_matrix[i][j]) {
-                            vec_4 *this_vec = malloc(sizeof (vec_4));
-                            *this_vec = (vec_4) {graph[i].x, graph[i].y,
-                                                 graph[j].x, graph[j].y};
-
-                            draw_arc (this_vec, 100);
-                            free (this_vec);
+                            draw_arc (this_vec, 500, 0);
                         }
                 }
             }
             else {
                 if (relation_matrix[i][j]) {
-                    XDrawLine(dis, win, gc, graph[i].x, graph[i].y, graph[j].x, graph[j].y);
+                    draw_line(this_vec, 0);
                 }
             }
+            free (this_vec); free (offset);
         }
     }
-    free(vec1); free(vec2); free(vec3); free(vec_now);
 }
 
+void draw_graph_o (point_t *graph, int **relation_matrix, int size) {
+
+    int point_1 = 0;
+    int point_2 = size / 3;
+    int point_3 = 2 * size / 3;
+
+
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            XSetForeground(dis, gc, 0xFFFFFF);
+            XSetLineAttributes(dis, gc, 1, LineSolid, CapButt, JoinMiter);
+
+            vec_4 *this_vec = malloc(sizeof (vec_4));
+            *this_vec = (vec_4) {graph[i].x, graph[i].y,
+                                 graph[j].x, graph[j].y};
+
+            r_offset *offset = rad_offsetting(this_vec);
+
+            this_vec->start_x += offset->x_offset;
+            this_vec->start_y += offset->y_offset;
+            this_vec->end_x -= offset->x_offset;
+            this_vec->end_y -= offset->y_offset;
+
+            if (relation_matrix[i][j]) {
+                    int condition = (
+                            point_1 <= i && i <= point_2 && point_1 <= j && j <= point_2 ||
+                            point_2 <= i && i <= point_3 && point_2 <= j && j <= point_3 ||
+                            point_3 <= i && i < size && point_3 <= j && j < size ||
+                            point_3 <= i && i < size &&  j == point_1 ||
+                            point_3 <= j && j < size &&  i == point_1);
+
+                    if (condition) {
+                        switch (abs(i - j) % (size - 1)) {
+                            case 0:
+                                if (relation_matrix[i][i]) {
+                                    XDrawArc(dis, win, gc, this_vec->start_x + 0.3*POINT_RADIUS, this_vec->start_y,
+                                             2 * POINT_RADIUS, 2 * POINT_RADIUS, 240*64, 240*64);
+                                    arrow(-190, this_vec->start_x + 0.7*POINT_RADIUS, this_vec->start_y + 1.9*POINT_RADIUS);
+                                }
+                                break;
+                            case 1:
+                                if (relation_matrix[i][j]) {
+                                    if (relation_matrix[j][i])
+                                        draw_arc (this_vec, 500, 1);
+                                    else
+                                        draw_line(this_vec, 1);
+                                }
+                                break;
+                            default:
+                                if (relation_matrix[i][j]) {
+                                    draw_arc (this_vec, 500, 1);
+                                }
+                        }
+                    }
+                    else {
+                        if (relation_matrix[i][j]) {
+                            if (relation_matrix[j][i])
+                                draw_arc (this_vec, 500, 1);
+                            else
+                                draw_line(this_vec, 1);
+                        }
+                }
+            }
+            free (this_vec); free(offset);
+        }
+    }
+}
 // matrix functions
 double **randm(int size1, int size2);
 int **mulmr(double coefficient, double **double_mat, int **target_mat, int size1, int size2, int oriented);
@@ -231,17 +367,18 @@ int main() {
                             return 0;
                             break;
                         case 'o':
+                            redraw();
                             rel_mat = mulmr(c, service_mat, rel_mat, n, n, 1);
                             printf("drawing oriented matrix: \n");
                             print_mat(rel_mat, n, n);
                             graph = tri_graph_create(graph, n);
-                            draw_graph_u(graph, rel_mat, n);
+                            draw_graph_o(graph, rel_mat, n);
                             draw_graph_vertices(graph, n);
                             break;
                         case 'u':
                             redraw();
-                            rel_mat = mulmr(c, service_mat, rel_mat, n, n, 1);
-                            printf("drawing oriented matrix: \n");
+                            rel_mat = mulmr(c, service_mat, rel_mat, n, n, 0);
+                            printf("drawing unoriented matrix: \n");
                             print_mat(rel_mat, n, n);
                             graph = tri_graph_create(graph, n);
                             draw_graph_u(graph, rel_mat, n);
@@ -285,7 +422,12 @@ void redraw() {
 }
 
 void arrow (double theta, int px, int py) {
-    theta = 3.1416 * (180.0 - theta) / 180.0;
+    XSetForeground(dis, gc, 0xFF0000);
+    XSetLineAttributes(dis, gc,
+                       2,
+                       LineSolid,
+                       CapButt, JoinMiter);
+    theta = 3.1415 * (180.0 - theta) / 180.0;
     int lx, ly, rx, ry;
     lx = px + (int) 15 * cos(theta + 0.3);
     rx = px + (int) 15 * cos(theta - 0.3);
@@ -342,21 +484,12 @@ point_t *tri_graph_create(point_t *tar_graph, int graph_size) {
 
 void draw_graph_vertices(point_t *graph, int size) {
     XSetForeground(dis, gc, 0xFFFFFF);
-    int r = 15;
     for (int i = 0; i < size; i++) {
         XFillArc(dis, win, gc,
-                 graph[i].x - r, graph[i].y - r,
-                 2*r, 2*r,
+                 graph[i].x - POINT_RADIUS, graph[i].y - POINT_RADIUS,
+                 2 * POINT_RADIUS, 2 * POINT_RADIUS,
                  0, 360 * 64);
     }
-
-//    XSetForeground(dis, gc, kpen);
-//    XDrawLine(dis, win, gc, nx[0], ny[0], nx[1], ny[1]);
-//    arrow(0, nx[1] - dx, ny[1]);
-//
-//    XDrawArc(dis, win, gc, nx[0], ny[0] - 40, nx[2] - nx[0], 80, 0, 180*64);
-//    arrow(-45.0, nx[2] - dx * sin(45), ny[2] - dy * sin(45));
-
     XSetForeground(dis, gc, bpen);
 
     XSetLineAttributes(dis, gc,
@@ -364,8 +497,8 @@ void draw_graph_vertices(point_t *graph, int size) {
                        LineSolid,
                        CapButt, JoinMiter);
     for (int i = 0; i < size; i++){
-        XDrawArc(dis, win, gc, graph[i].x - r, graph[i].y - r,
-                 2*r, 2*r, 0, 360*64);
+        XDrawArc(dis, win, gc, graph[i].x - POINT_RADIUS, graph[i].y - POINT_RADIUS,
+                 2 * POINT_RADIUS, 2 * POINT_RADIUS, 0, 360 * 64);
         XDrawString(dis, win, gc, graph[i].x - 2, graph[i].y + 4,
                     graph[i].number, i < 9 ? 1 : 2);
     }
@@ -397,7 +530,7 @@ int **mat_create(int size1, int size2) {
 int **mulmr(double coefficient, double **double_mat, int **target_mat, int size1, int size2, int oriented) {
     for (int i = 0; i < size1; i++) {
         for (int j = 0; j < size2; j++) {
-            if (oriented) {
+            if (!oriented) {
                 target_mat[i][j] = coefficient * double_mat[i][j] < 1 ?
                                    0 : 1;
                 target_mat[j][i] = coefficient * double_mat[i][j] < 1 ?
