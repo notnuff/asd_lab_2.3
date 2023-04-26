@@ -53,7 +53,7 @@ void redraw ();
 
 int SCREEN_WIDTH = 1000;
 int SCREEN_HEIGHT = 800;
-int POINT_RADIUS = 15;
+int POINT_RADIUS = 20;
 unsigned long bpen = 0x3200FF;
 unsigned long wpen = 0xFFFFFF;
 
@@ -171,7 +171,6 @@ void draw_arc (vec_4 *vector, int offset_radius, int with_arrow) {
              2*rad2, 2*rad2, E, abs(S - E));
     if(with_arrow) {
         int theta = -90 + round(acos(vectors_cos(center_to_end, vec_OX)) * 180 / 3.1415);
-        printf("\n%i\n", theta);
         if (vec_quarter(center_to_end) == 3 || vec_quarter(center_to_end) == 4)
             theta = 180 - theta;
         arrow(theta, vector->end_x, vector->end_y);
@@ -369,7 +368,7 @@ int main() {
                         case 'o':
                             redraw();
                             rel_mat = mulmr(c, service_mat, rel_mat, n, n, 1);
-                            printf("drawing oriented matrix: \n");
+                            printf("drawing oriented relation matrix: \n");
                             print_mat(rel_mat, n, n);
                             graph = tri_graph_create(graph, n);
                             draw_graph_o(graph, rel_mat, n);
@@ -378,7 +377,7 @@ int main() {
                         case 'u':
                             redraw();
                             rel_mat = mulmr(c, service_mat, rel_mat, n, n, 0);
-                            printf("drawing unoriented matrix: \n");
+                            printf("drawing unoriented relation matrix: \n");
                             print_mat(rel_mat, n, n);
                             graph = tri_graph_create(graph, n);
                             draw_graph_u(graph, rel_mat, n);
@@ -429,10 +428,10 @@ void arrow (double theta, int px, int py) {
                        CapButt, JoinMiter);
     theta = 3.1415 * (180.0 - theta) / 180.0;
     int lx, ly, rx, ry;
-    lx = px + (int) 15 * cos(theta + 0.3);
-    rx = px + (int) 15 * cos(theta - 0.3);
-    ly = py + (int) 15 * sin(theta + 0.3);
-    ry = py + (int) 15 * sin(theta - 0.3);
+    lx = px + (int) 20 * cos(theta + 0.3);
+    rx = px + (int) 20 * cos(theta - 0.3);
+    ly = py + (int) 20 * sin(theta + 0.3);
+    ry = py + (int) 20 * sin(theta - 0.3);
 
     XDrawLine(dis, win, gc, lx, ly, px, py);
     XDrawLine(dis, win, gc, px, py, rx, ry);
@@ -476,7 +475,6 @@ point_t *tri_graph_create(point_t *tar_graph, int graph_size) {
         tar_graph[i].x =  SCREEN_WIDTH + (int) (serv_points[i].x * SCREEN_WIDTH * as_ratio - SCREEN_WIDTH) / 2;
         tar_graph[i].y =  SCREEN_HEIGHT - (int) (serv_points[i].y * SCREEN_HEIGHT + SCREEN_HEIGHT) / 2 ;
         sprintf(tar_graph[i].number, "%d", i + 1);
-        printf("%i %i %s\n", tar_graph[i].x, tar_graph[i].y, tar_graph[i].number);
     }
     free(serv_points);
     return tar_graph;
@@ -533,8 +531,7 @@ int **mulmr(double coefficient, double **double_mat, int **target_mat, int size1
             if (!oriented) {
                 target_mat[i][j] = coefficient * double_mat[i][j] < 1 ?
                                    0 : 1;
-                target_mat[j][i] = coefficient * double_mat[i][j] < 1 ?
-                                   0 : 1;
+                if (target_mat[i][j]) target_mat[j][i] = 1;
             }
             else {
                 target_mat[i][j] = coefficient * double_mat[i][j] < 1 ?
