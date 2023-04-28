@@ -1,5 +1,0 @@
-
-#ifndef INC_2_3_GRAPH_CREATE_H
-#define INC_2_3_GRAPH_CREATE_H
-
-#endif //INC_2_3_GRAPH_CREATE_H

@@ -55,6 +55,24 @@ build CMakeFiles/2_3.dir/main.c.o: C_COMPILER__2_3_Debug /home/notnuff/ASD_labs/
   OBJECT_DIR = CMakeFiles/2_3.dir
   OBJECT_FILE_DIR = CMakeFiles/2_3.dir
 
+build CMakeFiles/2_3.dir/src/libs/graph_create.c.o: C_COMPILER__2_3_Debug /home/notnuff/ASD_labs/2$ sem/2.3/src/libs/graph_create.c || cmake_object_order_depends_target_2_3
+  DEP_FILE = CMakeFiles/2_3.dir/src/libs/graph_create.c.o.d
+  FLAGS = -g -fdiagnostics-color=always -std=gnu11
+  OBJECT_DIR = CMakeFiles/2_3.dir
+  OBJECT_FILE_DIR = CMakeFiles/2_3.dir/src/libs
+
+build CMakeFiles/2_3.dir/src/libs/vec_math_lib.c.o: C_COMPILER__2_3_Debug /home/notnuff/ASD_labs/2$ sem/2.3/src/libs/vec_math_lib.c || cmake_object_order_depends_target_2_3
+  DEP_FILE = CMakeFiles/2_3.dir/src/libs/vec_math_lib.c.o.d
+  FLAGS = -g -fdiagnostics-color=always -std=gnu11
+  OBJECT_DIR = CMakeFiles/2_3.dir
+  OBJECT_FILE_DIR = CMakeFiles/2_3.dir/src/libs
+
+build CMakeFiles/2_3.dir/src/libs/X_routines.c.o: C_COMPILER__2_3_Debug /home/notnuff/ASD_labs/2$ sem/2.3/src/libs/X_routines.c || cmake_object_order_depends_target_2_3
+  DEP_FILE = CMakeFiles/2_3.dir/src/libs/X_routines.c.o.d
+  FLAGS = -g -fdiagnostics-color=always -std=gnu11
+  OBJECT_DIR = CMakeFiles/2_3.dir
+  OBJECT_FILE_DIR = CMakeFiles/2_3.dir/src/libs
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target 2_3
@@ -63,7 +81,7 @@ build CMakeFiles/2_3.dir/main.c.o: C_COMPILER__2_3_Debug /home/notnuff/ASD_labs/
 #############################################
 # Link the executable 2_3
 
-build 2_3: C_EXECUTABLE_LINKER__2_3_Debug CMakeFiles/2_3.dir/main.c.o
+build 2_3: C_EXECUTABLE_LINKER__2_3_Debug CMakeFiles/2_3.dir/main.c.o CMakeFiles/2_3.dir/src/libs/graph_create.c.o CMakeFiles/2_3.dir/src/libs/vec_math_lib.c.o CMakeFiles/2_3.dir/src/libs/X_routines.c.o
   FLAGS = -g
   LINK_LIBRARIES = -lX11  -lm
   OBJECT_DIR = CMakeFiles/2_3.dir

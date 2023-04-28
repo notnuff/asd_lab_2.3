@@ -8,111 +8,13 @@
 #include <stdlib.h>
 #include <math.h>
 
-// X variables
-Display *dis;
-int screen;
-Window win;
-GC gc; //graphic context
-
-// Program name
-char ProgramName[] = "lab3";
-
-//virtual screen space has double values from -1 to 1
-typedef struct virtual_screen_space_point_t {
-    double x;
-    double y;
-} serv_point_t;
-//actual screen space has int values from 0 to screen width (height)
-typedef struct screen_space_point_t {
-    int x;
-    int y;
-    char number[2];
-} point_t;
-
-typedef struct vector {
-    int start_x;
-    int start_y;
-    int end_x;
-    int end_y;
-} vec_4;
-
-typedef struct serv_vector { //it`s relative to start_x, start_y
-    int x;
-    int y;
-} vec_2;
-
-typedef struct radius_offset {
-    int x_offset;
-    int y_offset;
-} r_offset;
-// X routines
-void init_x();
-void close_x();
-void redraw ();
-
-
-int SCREEN_WIDTH = 1000;
-int SCREEN_HEIGHT = 800;
-int POINT_RADIUS = 20;
-unsigned long bpen = 0x3200FF;
-unsigned long wpen = 0xFFFFFF;
-
-
+#include "src/consts_n_structures.h"
+#include "src/graph_create.h"
+#include "src/vec_math_lib.h"
+#include "src/X_routines.h"
 
 // graph drawing routines
 void arrow(double theta, int px, int py);
-double vec_dist (vec_2* vec) {
-    double dist = sqrt(vec->x * vec->x + vec->y * vec->y);
-    return dist;
-}
-double vectors_cos (vec_2* vec1, vec_2* vec2) {
-    double cos = (vec1->x * vec2 ->x + vec1->y * vec2->y) /
-            (vec_dist(vec1) * vec_dist(vec2));
-    return (cos > 0.01 || cos < -0.01) ? cos : 0;
-}
-int vec_quarter (vec_2* vec) {
-    if (vec->x > 0 && vec->y > 0) return 4;
-    if (vec->x > 0 && vec->y <= 0) return 1;
-    if (vec->x <= 0 && vec->y > 0) return 3;
-    if (vec->x <= 0 && vec->y <= 0) return 2;
-}
-r_offset *rad_offsetting(vec_4* vector) {
-    vec_2 *vec = malloc(sizeof (vec_2));
-    vec_2 *vec_OX = malloc(sizeof (vec_2));
-
-    *vec_OX = (vec_2) {1,  0};
-    vec->x = vector->end_x - vector->start_x;
-    vec->y = vector->end_y - vector->start_y;
-
-    int quarter = vec_quarter(vec);
-
-    int x = abs(POINT_RADIUS * vectors_cos(vec, vec_OX));
-    int y = abs(POINT_RADIUS * sqrt(1 - vectors_cos(vec, vec_OX) * vectors_cos(vec, vec_OX)));
-
-    switch (quarter) {
-        case 1:
-            x = x;
-            y = -y;
-            break;
-        case 2:
-            x = -x;
-            y = -y;
-            break;
-        case 3:
-            x = -x;
-            y = y;
-            break;
-        case 4:
-            x = x;
-            y = y;
-            break;
-    }
-    free(vec_OX); free(vec);
-    r_offset *offset = malloc(sizeof(r_offset));
-    offset->x_offset = x;
-    offset->y_offset = y;
-    return offset;
-}
 void draw_graph_vertices (point_t *graph, int size);
 
 //за цю функію взагалі треба 13 балів ставити)
@@ -322,13 +224,6 @@ void draw_graph_o (point_t *graph, int **relation_matrix, int size) {
     }
 }
 // matrix functions
-double **randm(int size1, int size2);
-int **mulmr(double coefficient, double **double_mat, int **target_mat, int size1, int size2, int oriented);
-int **mat_create(int size1, int size2);
-
-point_t *tri_graph_create(point_t *tar_graph, int graph_size);
-void free_mat (size_t **target_mat, int size2);
-void print_mat(int **target_mat, int size1, int size2);
 
 
 int main() {
@@ -437,49 +332,6 @@ void arrow (double theta, int px, int py) {
     XDrawLine(dis, win, gc, px, py, rx, ry);
 }
 
-point_t *tri_graph_create(point_t *tar_graph, int graph_size) {
-    double as_ratio = (double) SCREEN_HEIGHT / SCREEN_WIDTH;
-    tar_graph = malloc(sizeof (point_t) * graph_size);
-    serv_point_t *serv_points = malloc(sizeof (serv_point_t) * graph_size);
-    double indent_x = (double) 100 / SCREEN_WIDTH;
-    double indent_y = (double) 400 / SCREEN_HEIGHT;
-    int point_1 = 0;
-    int point_2 = graph_size / 3;
-    int point_3 = 2 * graph_size / 3;
-
-    serv_points[point_1] = (serv_point_t) {0, 1 - indent_y / 5};
-    serv_points[point_2] = (serv_point_t) {1 - indent_x, -1 + indent_y};
-    serv_points[point_3] = (serv_point_t) {-1 + indent_x, -1 + indent_y};
-
-    //interpolation (I guess?) for non-anchor points of triangle
-    for (int i = point_1 + 1, j = 1 ; i < point_2; i++, j++) {
-        serv_points[i].x = serv_points[point_1].x +
-                           j * (serv_points[point_2].x - serv_points[point_1].x) / (point_2 - point_1);
-        serv_points[i].y = serv_points[point_1].y +
-                           j * (serv_points[point_2].y - serv_points[point_1].y) / (point_2 - point_1);
-    }
-    for (int i = point_2 + 1, j = 1; i < point_3; i++, j++) {
-        serv_points[i].x = serv_points[point_2].x +
-                           j * (serv_points[point_3].x - serv_points[point_2].x) / (point_3 - point_2);
-        serv_points[i].y = serv_points[point_2].y +
-                           j * (serv_points[point_3].y - serv_points[point_2].y) / (point_3 - point_2);
-    }
-    for (int i = point_3 + 1, j = 1; i < graph_size; i++, j++) {
-        serv_points[i].x = serv_points[point_3].x +
-                           j * (serv_points[point_1].x - serv_points[point_3].x) / (graph_size - point_3);
-        serv_points[i].y = serv_points[point_3].y +
-                           j * (serv_points[point_1].y - serv_points[point_3].y) / (graph_size - point_3);
-    }
-    //translating into the screen space
-    for (int i = 0; i < graph_size; i++) {
-        tar_graph[i].x =  SCREEN_WIDTH + (int) (serv_points[i].x * SCREEN_WIDTH * as_ratio - SCREEN_WIDTH) / 2;
-        tar_graph[i].y =  SCREEN_HEIGHT - (int) (serv_points[i].y * SCREEN_HEIGHT + SCREEN_HEIGHT) / 2 ;
-        sprintf(tar_graph[i].number, "%d", i + 1);
-    }
-    free(serv_points);
-    return tar_graph;
-}
-
 void draw_graph_vertices(point_t *graph, int size) {
     XSetForeground(dis, gc, 0xFFFFFF);
     for (int i = 0; i < size; i++) {
@@ -501,59 +353,3 @@ void draw_graph_vertices(point_t *graph, int size) {
                     graph[i].number, i < 9 ? 1 : 2);
     }
 }
-
-
-
-double **randm(int size1, int size2) {
-    double **result_mat = (double **) malloc(sizeof (double *) * size1);
-
-    for (int i = 0; i < size1; i++) {
-        result_mat[i] = (double *) malloc(sizeof(double ) * size2);
-
-        for (int j = 0; j < size2; j++) {
-            result_mat[i][j] = 2.0 * rand() / RAND_MAX;
-        }
-    }
-    return result_mat;
-}
-
-int **mat_create(int size1, int size2) {
-    int **result_mat = (int **) malloc(sizeof(int *) * size1);
-    for (int i = 0; i < size1; i++) {
-        result_mat[i] = (int *) malloc(sizeof(int) * size2);
-    }
-    return result_mat;
-}
-
-int **mulmr(double coefficient, double **double_mat, int **target_mat, int size1, int size2, int oriented) {
-    for (int i = 0; i < size1; i++) {
-        for (int j = 0; j < size2; j++) {
-            if (!oriented) {
-                target_mat[i][j] = coefficient * double_mat[i][j] < 1 ?
-                                   0 : 1;
-                if (target_mat[i][j]) target_mat[j][i] = 1;
-            }
-            else {
-                target_mat[i][j] = coefficient * double_mat[i][j] < 1 ?
-                                   0 : 1;
-            }
-        }
-    }
-    return target_mat;
-}
-
-void free_mat (size_t **target_mat, int size2) {
-    for (int i = 0; i <= size2; i++) {
-        free(target_mat[i]);
-    }
-    free(target_mat);
-}
-
-void print_mat(int **target_mat, int size1, int size2) {
-    for (int i = 0; i < size1; i++) {
-        for (int j = 0; j < size2; j++) {
-            printf("%2i ", target_mat[i][j]);
-        }
-        printf("\n");
-    }
-};
