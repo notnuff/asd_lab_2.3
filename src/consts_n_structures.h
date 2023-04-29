@@ -24,16 +24,23 @@ typedef struct vector {
     int start_y;
     int end_x;
     int end_y;
-} vec_4;
+} vec_4_t;
 
 typedef struct serv_vector { //it`s relative to start_x, start_y
     int x;
     int y;
-} vec_2;
+} vec_2_t;
 
 typedef struct radius_offset {
     int x_offset;
     int y_offset;
-} r_offset;
+} r_offset_t;
+
+typedef struct arrows_list_t {
+    double theta;
+    int px;
+    int py;
+    struct arrows_list_t *next_arr;
+} a_list_t;
 
 #endif //INC_2_3_CONSTS_N_STRUCTURES_H

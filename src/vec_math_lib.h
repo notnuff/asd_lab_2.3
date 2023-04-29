@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include "consts_n_structures.h"
 
-double vec_dist (vec_2* vec);
-double vectors_cos (vec_2* vec1, vec_2* vec2);
-int vec_quarter (vec_2* vec);
-r_offset *rad_offsetting(vec_4* vector);
+double vec_dist (vec_2_t* vec);
+double vectors_cos (vec_2_t* vec1, vec_2_t* vec2);
+int vec_quarter (vec_2_t* vec);
+r_offset_t *rad_offsetting(vec_4_t* vector);
 #endif //INC_2_3_VEC_MATH_LIB_H

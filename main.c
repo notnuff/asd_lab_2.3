@@ -37,6 +37,7 @@ int main() {
                 break;
             case KeyPress:
                 if (XLookupString(&event.xkey, text, 255, &key, 0) == 1) {
+                    int oriented = 42;
                     switch (text[0]) {
                         case 'q':
                             free_mat(service_mat, n);
@@ -46,23 +47,23 @@ int main() {
                             return 0;
                             break;
                         case 'o':
-                            redraw_x();
-                            rel_mat = mulmr(c, service_mat, rel_mat, n, n, 1);
-                            printf("drawing oriented relation matrix: \n");
-                            print_mat(rel_mat, n, n);
-                            graph = tri_graph_create(graph, n);
-                            draw_graph_o(graph, rel_mat, n);
-                            draw_graph_vertices(graph, n);
+                            oriented = 1;
                             break;
                         case 'u':
-                            redraw_x();
-                            rel_mat = mulmr(c, service_mat, rel_mat, n, n, 0);
-                            printf("drawing unoriented relation matrix: \n");
-                            print_mat(rel_mat, n, n);
-                            graph = tri_graph_create(graph, n);
-                            draw_graph_u(graph, rel_mat, n);
-                            draw_graph_vertices(graph, n);
+                            oriented = 0;
                             break;
+                        default:
+                            redraw_x();
+                            oriented = 42;
+                    }
+                    if (oriented != 42) {
+                        redraw_x();
+                        rel_mat = mulmr(c, service_mat, rel_mat, n, n, oriented);
+                        printf("drawing unoriented relation matrix: \n");
+                        print_mat(rel_mat, n, n);
+                        graph = tri_graph_create(graph, n);
+                        draw_graph(graph, rel_mat, n, oriented);
+                        draw_graph_vertices(graph, n);
                     }
                     break;
                 }

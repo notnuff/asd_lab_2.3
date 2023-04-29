@@ -1,25 +1,25 @@
 #include "../vec_math_lib.h"
 
-double vec_dist (vec_2* vec) {
+double vec_dist (vec_2_t* vec) {
     double dist = sqrt(vec->x * vec->x + vec->y * vec->y);
     return dist;
 }
-double vectors_cos (vec_2* vec1, vec_2* vec2) {
+double vectors_cos (vec_2_t* vec1, vec_2_t* vec2) {
     double cos = (vec1->x * vec2 ->x + vec1->y * vec2->y) /
                  (vec_dist(vec1) * vec_dist(vec2));
     return (cos > 0.01 || cos < -0.01) ? cos : 0;
 }
-int vec_quarter (vec_2* vec) {
+int vec_quarter (vec_2_t* vec) {
     if (vec->x > 0 && vec->y > 0) return 4;
     if (vec->x > 0 && vec->y <= 0) return 1;
     if (vec->x <= 0 && vec->y > 0) return 3;
     if (vec->x <= 0 && vec->y <= 0) return 2;
 }
-r_offset *rad_offsetting(vec_4* vector) {
-    vec_2 *vec = malloc(sizeof (vec_2));
-    vec_2 *vec_OX = malloc(sizeof (vec_2));
+r_offset_t *rad_offsetting(vec_4_t* vector) {
+    vec_2_t *vec = malloc(sizeof (vec_2_t));
+    vec_2_t *vec_OX = malloc(sizeof (vec_2_t));
 
-    *vec_OX = (vec_2) {1,  0};
+    *vec_OX = (vec_2_t) {1, 0};
     vec->x = vector->end_x - vector->start_x;
     vec->y = vector->end_y - vector->start_y;
 
@@ -47,7 +47,7 @@ r_offset *rad_offsetting(vec_4* vector) {
             break;
     }
     free(vec_OX); free(vec);
-    r_offset *offset = malloc(sizeof(r_offset));
+    r_offset_t *offset = malloc(sizeof(r_offset_t));
     offset->x_offset = x;
     offset->y_offset = y;
     return offset;
