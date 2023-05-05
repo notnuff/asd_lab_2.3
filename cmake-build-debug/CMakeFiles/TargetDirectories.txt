@@ -1,3 +1,0 @@
-/home/notnuff/ASD_labs/2 sem/2.3/cmake-build-debug/CMakeFiles/2_3.dir
-/home/notnuff/ASD_labs/2 sem/2.3/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/notnuff/ASD_labs/2 sem/2.3/cmake-build-debug/CMakeFiles/rebuild_cache.dir
