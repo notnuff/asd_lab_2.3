@@ -59,7 +59,10 @@ int main() {
                     if (oriented != 42) {
                         redraw_x();
                         rel_mat = mulmr(c, service_mat, rel_mat, n, n, oriented);
+                        oriented ?
+                        printf("drawing oriented relation matrix: \n") :
                         printf("drawing unoriented relation matrix: \n");
+
                         print_mat(rel_mat, n, n);
                         graph = tri_graph_create(graph, n);
                         draw_graph(graph, rel_mat, n, oriented);

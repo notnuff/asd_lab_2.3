@@ -68,9 +68,15 @@ int **mulmr(double coefficient, double **double_mat, int **target_mat, int size1
     for (int i = 0; i < size1; i++) {
         for (int j = 0; j < size2; j++) {
             if (!oriented) {
-                target_mat[i][j] = coefficient * double_mat[i][j] < 1 ?
-                                   0 : 1;
-                if (target_mat[i][j]) target_mat[j][i] = 1;
+                if (coefficient * double_mat[i][j] < 1) {
+                    if (target_mat[i][j] != 1)
+                        target_mat[i][j] = 0;
+                }
+                else {
+                    target_mat[i][j] = 1;
+                    target_mat[j][i] = 1;
+                    printf("\n%i %i\n", i, j);
+                }
             }
             else {
                 target_mat[i][j] = coefficient * double_mat[i][j] < 1 ?
