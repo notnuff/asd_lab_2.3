@@ -1,4 +1,3 @@
-
 // other libraries
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,7 +41,8 @@ int main() {
                         case 'q':
                             free_mat(service_mat, n);
                             free_mat(rel_mat, n);
-                            free(graph);
+                            for (int i = 0; i < n; i++)
+                                free(graph[i]);
                             close_x();
                             return 0;
                             break;
