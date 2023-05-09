@@ -41,8 +41,7 @@ int main() {
                         case 'q':
                             free_mat(service_mat, n);
                             free_mat(rel_mat, n);
-                            for (int i = 0; i < n; i++)
-                                free(graph[i]);
+                            free(graph);
                             close_x();
                             return 0;
                             break;
