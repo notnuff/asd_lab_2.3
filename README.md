@@ -4,6 +4,5 @@ compiling:
 
 controls:
 
-press <code>O</code> to draw oriented graph
-
+press <code>O</code> to draw oriented graph <br>
 press <code>U</code> to draw unoriented graph
